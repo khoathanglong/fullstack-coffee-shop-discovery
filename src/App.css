@@ -1,0 +1,32 @@
+.cover{
+	background-image: url('cover.jpg');
+	opacity: 0.8;
+	height: 400px;
+	background-position: center;
+	background-size: cover;
+    background-repeat: no-repeat;
+    margin-bottom: 50px;
+}
+.cover>div{
+	position: absolute;
+	top: 50%;
+	width: 50%;
+	left: 20%;
+	opacity: 1;
+}
+
+.form-control{
+	height: 50px;
+	font-size: 1.5em;
+	color: black;
+}
+.thumbnail{
+  transition: all .2s ease-in-out;
+}
+.thumbnail:hover{
+  transform: scale(1.1);
+  cursor: pointer;
+}
+.fa-star{
+	color:orange;
+}
