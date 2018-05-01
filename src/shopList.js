@@ -11,27 +11,26 @@ export default (props)=>{
 		}
 		return star
 	}
-
 	return (
 		<Masonry options={{transitionDuration: 0}}>
 			{props.shoplist.map((shop,index)=>{
 				return (
 					<Col xs={12} sm={6} md={4} lg={3} key={index}>
 						<Thumbnail src={shop.image} responsive>
-							<p style={{fontWeight:'bold'}}>{shop.name}{' '}
-								{stars(shop.rating).map(()=>{
-									return <i class="fa fa-star"></i>
-								})}
-							</p>
-							<p>
-								Address: {shop.location.address1} <br/>
-								{shop.phone?<span>Tel: {shop.phone}</span>:null}
-							</p>
-								<Button bsStyle="success">
-									Going 0
+							<a href={shop.url} target="_blank">
+								<p style={{fontWeight:'bold'}}>{shop.name}{' '}
+									{stars(shop.rating).map((e,i)=>{
+										return <i className="fa fa-star" key={i}></i>
+									})}
+								</p>
+								<p>
+									Address: {shop.location.address1} <br/>
+									{shop.phone?<span>Tel: {shop.phone}</span>:null}
+								</p>
+							</a>	
+								<Button bsStyle="success" onClick={()=>props.handleGoing(index)}>
+									Going {shop.going}
 								</Button>{' '}
-								
-								
 						</Thumbnail> 
 					</Col>
 				)
