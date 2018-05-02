@@ -33,7 +33,6 @@ class App extends Component {
       navigator.geolocation.getCurrentPosition(position=>{
         const x=position.coords.latitude;
         const y=position.coords.longitude;
-        console.log(x,y)
         this.fetchByGeoLocation(x,y)
       })
     }else{
@@ -42,7 +41,7 @@ class App extends Component {
   }
 
   fetchByCityName(cityName){
-    fetch(`/api/${JSON.stringify(cityName)}`)
+    fetch(`/api/shops/${JSON.stringify(cityName)}`)
     .then(res=>res.json())
     .then(res=>{
       this.setState({shoplist:res,isFetched:true})
@@ -50,7 +49,7 @@ class App extends Component {
   }
 
   fetchByGeoLocation(x,y){
-    fetch(`/api/${JSON.stringify([x,y])}`)
+    fetch(`/api/shops/${JSON.stringify([x,y])}`)
     .then(res=>res.json())
     .then(res=>{
       this.setState({shoplist:res,isFetched:true})
@@ -61,30 +60,23 @@ class App extends Component {
     fetch('/auth/google',{
       method:'get',
       headers:{
-        // Authorization: `Bearer ${token}`,
-        access_token:token,
-        'Content-Type':'application/json'
-      }
-    })
-  }
-
-  fetchtest(token){
-    fetch('/hello',{
-      method:'get',
-      headers:{
-        // Authorization: `Bearer ${token}`,
         access_token:token,
         'Content-Type':'application/json'
       }
     })
     .then(res=>res.json())
-    .then(res=>{console.log(res)})
+    .then(res=>{
+      console.log(res)
+      sessionStorage.setItem('token',res.token)
+    })
   }
 
   responseGoogle(response){
     console.log(response);
-    this.fetchUser(response.tokenObj.access_token+1)
-    this.setState({token:response.tokenObj.access_token})
+    this.fetchUser(response.tokenObj.access_token);
+    //tell server that I am authenticated by google
+    //server then will verify if you "actually" authenticated by user
+    //if true, server will response with a token that you will saved and use it later
   }
   handleGoing(index){
     let shoplist=this.state.shoplist.slice();
@@ -97,7 +89,6 @@ class App extends Component {
         <Cover getGeoLocation={this.getGeoLocation}
                 getCityName={this.getCityName}
         />
-        <button onClick={()=>this.fetchtest(this.state.token)}>test</button>
         <GoogleLogIn responseGoogle={this.responseGoogle}/>
         {this.state.isFetched?
           <Grid className="App" fluid>

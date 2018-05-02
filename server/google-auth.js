@@ -1,7 +1,7 @@
 const GoogleStrategy = require('passport-google-token').Strategy;
 const config=require('./config');
-console.log(config)
-module.exports=(passport)=>{
+
+module.exports=(passport,db)=>{
 	passport.serializeUser((user, cb) => {
   		cb(null, user);
 	});
@@ -13,7 +13,7 @@ module.exports=(passport)=>{
 	    return {
 		    id: profile.id,
 		    displayName: profile.displayName,
-		    image: profile._raw.picture
+		    image: profile._json.picture
 	  	};
 	};
 
@@ -21,13 +21,16 @@ module.exports=(passport)=>{
 			(accessToken, refreshToken, profile, cb) => {
 		  		// Extract the minimal profile information we need from the profile object
 		  		// provided by Google
-		  		if(!accessToken){
-		  			console.log('wrong token')
-		  		}
-		  		console.log('accessToken',accessToken)
-		  		console.log('refreshToken',refreshToken)
-		  		console.log(profile); 
-	  			cb(null, extractProfile(profile));
+		  		db.collection('users').findOne({id:profile.id},{_id:0},(err,user)=>{
+		  			if (err) {console.log('strategy err: ',err)};
+		  			if (!user){
+		  				db.collection('users').insertOne(extractProfile(profile))
+		  				cb(null, extractProfile(profile));
+		  			}else{console.log('found user')
+		  				cb(null, user);
+		  			}
+		  		})
+
 			}
 		)
 	);
