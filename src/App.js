@@ -14,6 +14,7 @@ class App extends Component {
     this.fetchByCityName=this.fetchByCityName.bind(this);
     this.handleGoing=this.handleGoing.bind(this);
     this.responseGoogle=this.responseGoogle.bind(this);
+    this.fetchUserGoingToShop=this.fetchUserGoingToShop.bind(this);
   }
 
   componentDidMount(){
@@ -44,7 +45,9 @@ class App extends Component {
     fetch(`/api/shops/${JSON.stringify(cityName)}`)
     .then(res=>res.json())
     .then(res=>{
-      this.setState({shoplist:res,isFetched:true})
+      let shoplist=res.map(each=>{return {...each,isGoing:false}});
+      console.log(shoplist)
+      this.setState({shoplist,isFetched:true})
     })
   }
 
@@ -52,7 +55,8 @@ class App extends Component {
     fetch(`/api/shops/${JSON.stringify([x,y])}`)
     .then(res=>res.json())
     .then(res=>{
-      this.setState({shoplist:res,isFetched:true})
+      let shoplist=res.map(each=>{return {...each,isGoing:false}});
+      this.setState({shoplist,isFetched:true})
     })
   }
 
@@ -68,9 +72,44 @@ class App extends Component {
     .then(res=>{
       console.log(res)
       sessionStorage.setItem('token',res.token)
+      this.setState({user:{id:res.id, name:res.name}})
     })
   }
-
+  fetchUserGoingToShop(id){
+    fetch('/users/shops',{
+      method:'put',
+      headers:{
+        "Content-Type":"application/json",
+        "token":sessionStorage.getItem('token')
+      },
+      body:
+        JSON.stringify({shop:{
+          id,
+          goingDate:Date.now()
+        }
+      })
+    })
+    .then(res=>res.json())
+    .then(res=>{
+      console.log(res)
+    })
+  }
+  fetchUserNotGoingToShop(id){
+    fetch('/users/shops',{
+      method:'delete',
+      headers:{
+        'Content-Type':'application/json',
+        'token':sessionStorage.getItem('token')
+      },
+      body:JSON.stringify(
+        {
+          shop:
+            {id,
+            deletingDate:Date.now() 
+          }
+        })
+    })
+  }
   responseGoogle(response){
     console.log(response);
     this.fetchUser(response.tokenObj.access_token);
@@ -78,9 +117,19 @@ class App extends Component {
     //server then will verify if you "actually" authenticated by user
     //if true, server will response with a token that you will saved and use it later
   }
-  handleGoing(index){
+  handleGoing(index,id){
     let shoplist=this.state.shoplist.slice();
-    shoplist[index].going++;
+    if(this.state.user){
+      if(!this.state.shoplist[index].isGoing){
+        shoplist[index].going++;
+        shoplist[index].isGoing=true
+        this.fetchUserGoingToShop(id);
+      }else{
+        shoplist[index].going--;
+        shoplist[index].isGoing=false;
+        this.fetchUserNotGoingToShop(id);
+      }
+    }
     this.setState({shoplist});
   }
   render() {

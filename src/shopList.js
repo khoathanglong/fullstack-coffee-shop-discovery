@@ -28,7 +28,7 @@ export default (props)=>{
 									{shop.phone?<span>Tel: {shop.phone}</span>:null}
 								</p>
 							</a>	
-								<Button bsStyle="success" onClick={()=>props.handleGoing(index)}>
+								<Button bsStyle="success" onClick={()=>props.handleGoing(index,shop.id)}>
 									Going {shop.going}
 								</Button>{' '}
 						</Thumbnail> 

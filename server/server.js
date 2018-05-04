@@ -12,6 +12,7 @@ const express=require('express'),
 	google=require('./google-auth'),
 	cache=require('apicache').middleware,
 	verifyToken=require('./utils/verifyToken'),
+	sameDate=require('./utils/compareDate'),
 	{ generateToken, sendToken } = require('./utils/token');
 
 
@@ -46,7 +47,7 @@ MongoClient.connect(url,(err,client)=>{
 		})
 		.then(response=>response.json())
 		.then(response=>{
-			console.log(response)
+			db.collection('user').find({},{goingList:1,_id:0})
 			const data=response.businesses.map(data=>{
 				return {
 					name:data.name,
@@ -68,15 +69,42 @@ MongoClient.connect(url,(err,client)=>{
 		//if google token is authenticated, then set req.auth={id:req.user.id} then create server token
 		//then send it
 		//if not authenticated, passport will send a 401
-		req.auth={id:req.user.id};
+		req.auth={id:req.user.id,name:req.user.displayName};
 		next()
 	},generateToken,sendToken);
 
-	app.post('/shops/:id',verifyToken,(req,res)=>{
-		if (!req.userData) {
-			return res.status(401).json("You should log in first");
-		};
+	app.put('/users/shops',verifyToken,(req,res)=>{
+		console.log(req.body)
+		db.collection('users').updateOne(
+			{id:req.userData.id},
+			{$addToSet:{goingList:req.body.shop}}
+			//expect client send an object including date and restaurant ID in the body
+		).then(()=>{
+			res.json('update successfully')
+		})
+		
 	});
+
+	app.delete('/users/shops',verifyToken,(req,res)=>{
+		db.collection('users').findOne({id:req.userData.id},(err,user)=>{
+			let queryIndex=user.goingList.findIndex(el=>{
+					return	el.id===req.body.shop.id&&sameDate(el.goingDate,req.body.shop.deletingDate)
+				});
+			if(queryIndex>-1){
+				db.collection('users').updateOne(
+					{id:req.userData.id},
+					{
+						$pull:{goingList:{goingDate:user.goingList[queryIndex].goingDate}}
+					}
+				)
+				res.json('remove shop going successfully');
+			}else{
+				res.json('no information found')
+			}
+		});
+	});
+
+
 })//outer
 app.listen(process.env.PORT||3001, ()=>{
 	console.log('app listening to port',process.env.PORT||3001)

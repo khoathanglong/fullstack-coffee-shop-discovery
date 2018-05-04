@@ -2,7 +2,8 @@ const jwt =require('jsonwebtoken');
 
 const createToken =(auth)=>{
 	return jwt.sign({
-		id:auth.id
+		id:auth.id,
+		name:auth.name
 	},
 	process.env.TOKEN_SECRET,
 	{
@@ -17,6 +18,6 @@ module.exports={
 	},
 	sendToken:function(req,res){
 		res.status(200)
-			.json({token:req.token})
+			.json({token:req.token,...req.auth})
 	}
 }

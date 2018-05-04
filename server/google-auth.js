@@ -13,7 +13,8 @@ module.exports=(passport,db)=>{
 	    return {
 		    id: profile.id,
 		    displayName: profile.displayName,
-		    image: profile._json.picture
+		    image: profile._json.picture,
+		    goingList:[]
 	  	};
 	};
 
