@@ -63,7 +63,7 @@ MongoClient.connect(url,(err,client)=>{
 			return shops
 		})
 		.then(shops=>{
-			//get the list of shops all users going today in a specific area
+			//get the list of shops all users going today in a specific location
 			const idList=shops.map(each=>each.id);
 			db.collection('users').aggregate([
 				{
@@ -101,17 +101,20 @@ MongoClient.connect(url,(err,client)=>{
 					}
 				}
 				,
+				 { $unwind : "$goingList" }
+				,
 				{
 					$group:{
-						_id:'$goingList'
+						_id:"$goingList.id",
+						going:{$sum:"$goingList.going"}
 					}
 				}
-			]).forEach(result=>{
+			]).toArray((err,result)=>{
 				console.log(result)
-				// result.forEach(el=>{
-				// 	let index=idList.findIndex(id=>id===el.id);
-				// 	shops[index].going=el;//if shop is saved in database, return it rather query from Yelp API
-				// });
+				result.forEach(el=>{
+					let index=idList.findIndex(id=>id===el._id);
+					shops[index].going=el.going;//if shop is saved in database, return it rather query from Yelp API
+				});
 				res.json(shops)
 			})
 		})
