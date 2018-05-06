@@ -1,0 +1,15 @@
+	db.users.aggregate([
+				{ 
+					$project:{
+						shops:{
+							$filter:{
+								input:'$goingList',
+								as:"shop",
+								cond:{
+									"$$shop.going":1
+								}
+							}
+						}	
+					}	
+				}
+	])

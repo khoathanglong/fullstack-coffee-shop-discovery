@@ -30,7 +30,7 @@ MongoClient.connect(url,(err,client)=>{
 	
 	google(passport,db);
 
-	app.get('/api/shops/:location',cache('5 minutes'),(req,res)=>{
+	app.get('/api/shops/:location',(req,res)=>{
 		const location=JSON.parse(req.params.location);
 		let url=`https://api.yelp.com/v3/businesses/search?term=coffee&limit=12&open_now=true`;
 		if (typeof location==="object"){
@@ -47,20 +47,73 @@ MongoClient.connect(url,(err,client)=>{
 		})
 		.then(response=>response.json())
 		.then(response=>{
-			db.collection('user').find({},{goingList:1,_id:0})
-			const data=response.businesses.map(data=>{
+			const shops=response.businesses.map(data=>{
 				return {
 					name:data.name,
 					id:data.id,
 					image:data.image_url,
-					location:data.location,
+					location:data.location.address1,
 					phone:data.phone,
 					rating:data.rating,
 					url:data.url,
-					going:0
+					going:0,
+					city:data.location.city
 				}
 			});
-			res.json(data)
+			return shops
+		})
+		.then(shops=>{
+			//get the list of shops all users going today in a specific area
+			const idList=shops.map(each=>each.id);
+			db.collection('users').aggregate([
+				{
+					$match:{
+						goingList:{
+							$exists: true, $ne: []
+						}
+					}
+				}
+				,
+				{
+					$project:
+					{	
+						_id:0,
+						goingList:{
+							$filter:{
+								input:"$goingList",
+								as:"shop",
+								cond:{
+									$and:[
+										{$eq:
+											[
+												{$dayOfYear:"$$shop.goingDate"},
+												{$dayOfYear:new Date()}
+											]
+										},
+										{
+											$in:["$$shop.id",idList]
+										}
+
+									]	
+								}
+							}
+						}
+					}
+				}
+				,
+				{
+					$group:{
+						_id:'$goingList'
+					}
+				}
+			]).forEach(result=>{
+				console.log(result)
+				// result.forEach(el=>{
+				// 	let index=idList.findIndex(id=>id===el.id);
+				// 	shops[index].going=el;//if shop is saved in database, return it rather query from Yelp API
+				// });
+				res.json(shops)
+			})
 		})
 		.catch(err=>console.log(err))
 	});
@@ -74,10 +127,9 @@ MongoClient.connect(url,(err,client)=>{
 	},generateToken,sendToken);
 
 	app.put('/users/shops',verifyToken,(req,res)=>{
-		console.log(req.body)
 		db.collection('users').updateOne(
 			{id:req.userData.id},
-			{$addToSet:{goingList:req.body.shop}}
+			{$addToSet:{goingList:{...req.body.shop,goingDate:new Date()}}}
 			//expect client send an object including date and restaurant ID in the body
 		).then(()=>{
 			res.json('update successfully')
