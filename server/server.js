@@ -1,10 +1,12 @@
+
+require('dotenv').config();//create variable environment	
 const express=require('express'),
 	request=require('request'),
 	bodyParser=require('body-parser'),
 	morgan=require('morgan'),
 	app =express(),
 	MongoClient=require('mongodb').MongoClient,
-	url= 'mongodb://localhost:27017',
+	url= `mongodb://${process.env.MONGOID}:${process.env.MONGOPASSWORD}@ds217560.mlab.com:17560/kd-coffee-shop`,
 	assert=require('assert'),
 	fetch=require('node-fetch'),
 	cors=require('cors'),
@@ -16,8 +18,7 @@ const express=require('express'),
 	{ generateToken, sendToken } = require('./utils/token');
 
 
-require('dotenv').config();//create variable environment	
-app.use(cors())//modify to accept only some of clients later
+app.use(cors());//modify to accept only some of clients later
 app.use(morgan('dev'));
 app.use(bodyParser.urlencoded({ extended: false })); 
 app.use(bodyParser.json());	
@@ -30,7 +31,7 @@ MongoClient.connect(url,(err,client)=>{
 	
 	google(passport,db);
 
-	app.get('/api/shops/:location',(req,res)=>{
+	app.get('/api/shops/:location',cache('1 minutes'),(req,res)=>{
 		const location=JSON.parse(req.params.location);
 		let url=`https://api.yelp.com/v3/businesses/search?term=coffee&limit=20&open_now=true`;
 		if (typeof location==="object"){
@@ -113,6 +114,7 @@ MongoClient.connect(url,(err,client)=>{
 					}
 				}
 			]).toArray((err,result)=>{
+				assert.equal(null,err);
 				result.forEach(el=>{
 					let index=idList.findIndex(id=>id===el._id);
 					shops[index].going=el.going;//if shop is saved in database, return it rather query from Yelp API
@@ -137,13 +139,11 @@ MongoClient.connect(url,(err,client)=>{
 	});
 	
 	app.get('/users/shops',verifyToken,(req,res)=>{
-		console.log(req.userData.id)
 		db.collection('users').findOne({id:req.userData.id},(err,user)=>{
-			if (err) console.log(err);
+			assert.equal(null,err);
 			let userShops=user.goingList.filter(el=>{
 				return sameDate(el.goingDate,new Date())
 			})
-			console.log(userShops)
 			res.json(userShops)
 		});
 	});
@@ -161,6 +161,7 @@ MongoClient.connect(url,(err,client)=>{
 
 	app.delete('/users/shops',verifyToken,(req,res)=>{//need to be modified
 		db.collection('users').findOne({id:req.userData.id},(err,user)=>{
+			assert.equal(null,err);
 			let queryIndex=user.goingList.findIndex(el=>{
 					return	el.id===req.body.shop.id&&sameDate(el.goingDate,new Date())
 				});

@@ -12,7 +12,6 @@ export default (props)=>{
 						 	<FormControl 
 					          	type="text"
 					           	placeholder="By City"
-					           	defaultValue="paris"
 				          	/>
 						 	<InputGroup.Addon style={{cursor:'pointer'}} onClick={props.getCityName}>
 						 		<i className="fa fa-search"></i>

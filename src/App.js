@@ -109,7 +109,7 @@ class App extends Component {
   } 
 
   handleUserShops(){
-    fetch('/users/shops',{
+    fetch('https://kd-coffee-shop.glitch.me/users/shops',{
       method:'get',
       headers:{
         'Content-Type':'application/json',
@@ -124,7 +124,7 @@ class App extends Component {
   }
 
   fetchByCityName(cityName){
-    fetch(`/api/shops/${JSON.stringify(cityName)}`)
+    fetch(`https://kd-coffee-shop.glitch.me/api/shops/${JSON.stringify(cityName)}`)
     .then(res=>res.json())
     .then(res=>{
       let shoplist=res.map(each=>{return {...each,isGoing:false}});
@@ -134,7 +134,7 @@ class App extends Component {
   }
 
   fetchByGeoLocation(x,y){
-    fetch(`/api/shops/${JSON.stringify([x,y])}`)
+    fetch(`https://kd-coffee-shop.glitch.me/api/shops/${JSON.stringify([x,y])}`)
     .then(res=>res.json())
     .then(res=>{
       let shoplist=res.map(each=>{return {...each,isGoing:false}});
@@ -143,7 +143,7 @@ class App extends Component {
   }
 
   fetchServerToken(serverToken){
-    fetch('/user',{
+    fetch('https://kd-coffee-shop.glitch.me/user',{
       method:'get',
       headers:{
         "Content-Type":"application/json",
@@ -157,7 +157,7 @@ class App extends Component {
     })
   }
   fetchUser(token){
-    fetch('/auth/google',{
+    fetch('https://kd-coffee-shop.glitch.me/auth/google',{
       method:'get',
       headers:{
         access_token:token,
@@ -171,8 +171,7 @@ class App extends Component {
     })
   }
   fetchUserGoingToShop(index){
-    console.log({shop:{...this.state.shoplist[index],going:1}})
-    fetch('/users/shops',{
+    fetch('https://kd-coffee-shop.glitch.me/users/shops',{
       method:'put',
       headers:{
         "Content-Type":"application/json",
@@ -187,7 +186,7 @@ class App extends Component {
     })
   }
   fetchUserNotGoingToShop(id){
-    fetch('/users/shops',{
+    fetch('https://kd-coffee-shop.glitch.me/users/shops',{
       method:'delete',
       headers:{
         'Content-Type':'application/json',
@@ -222,7 +221,7 @@ class App extends Component {
         {this.state.isFetched?
           <Grid className="App" fluid>
             <ShopList 
-              shoplist={this.state.showUserShops?this.state.userShops: this.state.shoplist} 
+              shoplist={this.state.showUserShops&&this.state.user?this.state.userShops: this.state.shoplist} 
               handleGoing={this.handleGoing}
             />
           </Grid>:
