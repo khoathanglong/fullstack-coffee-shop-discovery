@@ -3,11 +3,12 @@ import './App.css';
 import ShopList from './shopList';
 import Cover from './cover'
 import {Grid} from 'react-bootstrap'
-import GoogleLogIn from './login'
+import LogInModal from './login'
+import Navbar from './nav'
 class App extends Component {
   constructor(){
     super();
-    this.state={shoplist:[]}
+    this.state={shoplist:[],showLogInModal:false}
     this.getGeoLocation=this.getGeoLocation.bind(this);
     this.fetchByGeoLocation=this.fetchByGeoLocation.bind(this);
     this.getCityName=this.getCityName.bind(this);
@@ -15,9 +16,16 @@ class App extends Component {
     this.handleGoing=this.handleGoing.bind(this);
     this.responseGoogle=this.responseGoogle.bind(this);
     this.fetchUserGoingToShop=this.fetchUserGoingToShop.bind(this);
+    this.handleLogInPanel=this.handleLogInPanel.bind(this);
+    this.handleLogOut=this.handleLogOut.bind(this);
+    this.fetchServerToken=this.fetchServerToken.bind(this);
   }
 
   componentDidMount(){
+    let token=sessionStorage.getItem('token');
+    if(token){
+      this.fetchServerToken(token);
+    }
     this.fetchByCityName('paris')
   }
 
@@ -41,6 +49,46 @@ class App extends Component {
     }
   }
 
+  responseGoogle(response){
+    console.log(response);
+    this.fetchUser(response.tokenObj.access_token);
+    //tell server that I am authenticated by google
+    //server then will verify if you "actually" authenticated by user
+    //if true, server will response with a token that you will saved and use it later
+  }
+
+  handleGoing(index,id){
+    let shoplist=this.state.shoplist.slice();
+    if(this.state.user){
+      if(!this.state.shoplist[index].isGoing){
+        shoplist[index].going++;
+        shoplist[index].isGoing=true
+        this.fetchUserGoingToShop(index,id);
+      }else{
+        shoplist[index].going--;
+        shoplist[index].isGoing=false;
+        this.fetchUserNotGoingToShop(id);
+      }
+      this.setState({shoplist});
+    }else{
+      this.setState({showLogInModal:true})
+    }
+  }
+
+  handleLogInPanel(){
+    if(!this.state.showLogInModal){
+      this.setState({showLogInModal:true});console.log('aa')
+    }else{
+      console.log('bb')
+      this.setState({showLogInModal:false})
+    }
+  }
+
+  handleLogOut(){
+    sessionStorage.removeItem('token');
+    this.setState({user:null})
+  } 
+
   fetchByCityName(cityName){
     fetch(`/api/shops/${JSON.stringify(cityName)}`)
     .then(res=>res.json())
@@ -60,6 +108,20 @@ class App extends Component {
     })
   }
 
+  fetchServerToken(serverToken){
+    fetch('/user',{
+      method:'get',
+      headers:{
+        "Content-Type":"application/json",
+        token:serverToken
+      }
+    })
+    .then(res=>res.json())
+    .then(res=>{
+        console.log(res)
+        this.setState({user:{id:res.id, name:res.name}})
+    })
+  }
   fetchUser(token){
     fetch('/auth/google',{
       method:'get',
@@ -72,10 +134,10 @@ class App extends Component {
     .then(res=>{
       console.log(res)
       sessionStorage.setItem('token',res.token)
-      this.setState({user:{id:res.id, name:res.name}})
+      this.setState({user:{id:res.id, name:res.name},showLogInModal:false})
     })
   }
-  fetchUserGoingToShop(id){
+  fetchUserGoingToShop(index){
     fetch('/users/shops',{
       method:'put',
       headers:{
@@ -83,11 +145,7 @@ class App extends Component {
         "token":sessionStorage.getItem('token')
       },
       body:
-        JSON.stringify({shop:{
-          id,
-          goingDate:Date.now()
-        }
-      })
+        JSON.stringify({shop:this.state.shoplist[index]})
     })
     .then(res=>res.json())
     .then(res=>{
@@ -110,35 +168,23 @@ class App extends Component {
         })
     })
   }
-  responseGoogle(response){
-    console.log(response);
-    this.fetchUser(response.tokenObj.access_token);
-    //tell server that I am authenticated by google
-    //server then will verify if you "actually" authenticated by user
-    //if true, server will response with a token that you will saved and use it later
-  }
-  handleGoing(index,id){
-    let shoplist=this.state.shoplist.slice();
-    if(this.state.user){
-      if(!this.state.shoplist[index].isGoing){
-        shoplist[index].going++;
-        shoplist[index].isGoing=true
-        this.fetchUserGoingToShop(id);
-      }else{
-        shoplist[index].going--;
-        shoplist[index].isGoing=false;
-        this.fetchUserNotGoingToShop(id);
-      }
-    }
-    this.setState({shoplist});
-  }
+
   render() {
     return (
       <div>
+        <Navbar 
+          handleLogInPanel={this.handleLogInPanel}
+          user={this.state.user}
+           handleLogOut={this.handleLogOut}
+        />
         <Cover getGeoLocation={this.getGeoLocation}
                 getCityName={this.getCityName}
         />
-        <GoogleLogIn responseGoogle={this.responseGoogle}/>
+        <LogInModal 
+          responseGoogle={this.responseGoogle}
+          showLogInModal={this.state.showLogInModal}
+          handleLogInPanel={this.handleLogInPanel}
+        />
         {this.state.isFetched?
           <Grid className="App" fluid>
             <ShopList 

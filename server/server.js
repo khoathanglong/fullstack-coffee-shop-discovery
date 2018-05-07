@@ -129,6 +129,10 @@ MongoClient.connect(url,(err,client)=>{
 		next()
 	},generateToken,sendToken);
 
+	app.get('/user',verifyToken,(req,res)=>{
+		res.send(req.userData)
+	});
+
 	app.put('/users/shops',verifyToken,(req,res)=>{
 		db.collection('users').updateOne(
 			{id:req.userData.id},
@@ -140,7 +144,7 @@ MongoClient.connect(url,(err,client)=>{
 		
 	});
 
-	app.delete('/users/shops',verifyToken,(req,res)=>{
+	app.delete('/users/shops',verifyToken,(req,res)=>{//need to be modified
 		db.collection('users').findOne({id:req.userData.id},(err,user)=>{
 			let queryIndex=user.goingList.findIndex(el=>{
 					return	el.id===req.body.shop.id&&sameDate(el.goingDate,req.body.shop.deletingDate)

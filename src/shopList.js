@@ -24,7 +24,7 @@ export default (props)=>{
 									})}
 								</p>
 								<p>
-									Address: {shop.location.address1} <br/>
+									Address: {shop.location} <br/>
 									{shop.phone?<span>Tel: {shop.phone}</span>:null}
 								</p>
 							</a>	
