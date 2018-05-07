@@ -4,9 +4,9 @@ import {FormControl,InputGroup,Button,ControlLabel,Row, Col} from 'react-bootstr
 export default (props)=>{
 	return (
 		<div className="cover" >
-		<div className="title">Discover the most popular Café</div>
+			<div className="title">Discover the most popular Café</div>
 			<Row className="inputGroup">
-				<Col sm={5} smOffset={2} xs={12} >
+				<Col sm={5} smOffset={1} xs={12} >
 					<form onSubmit={props.getCityName}>
 						<InputGroup>
 						 	<FormControl 

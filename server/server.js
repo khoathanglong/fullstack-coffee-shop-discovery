@@ -32,7 +32,7 @@ MongoClient.connect(url,(err,client)=>{
 
 	app.get('/api/shops/:location',(req,res)=>{
 		const location=JSON.parse(req.params.location);
-		let url=`https://api.yelp.com/v3/businesses/search?term=coffee&limit=12&open_now=true`;
+		let url=`https://api.yelp.com/v3/businesses/search?term=coffee&limit=20&open_now=true`;
 		if (typeof location==="object"){
 			url+=`&latitude=${location[0]}&longitude=${location[1]}`
 		}else{
@@ -77,6 +77,7 @@ MongoClient.connect(url,(err,client)=>{
 				{
 					$project:
 					{	
+						id:1,
 						_id:0,
 						goingList:{
 							$filter:{
@@ -105,15 +106,17 @@ MongoClient.connect(url,(err,client)=>{
 				,
 				{
 					$group:{
-						_id:"$goingList.id",
-						going:{$sum:"$goingList.going"}
+						_id:'$goingList.id',//shop ID
+						// userID:"$id",//user ID
+						going:{$sum:"$goingList.going"},
+						users:{$addToSet:"$id"}
 					}
 				}
 			]).toArray((err,result)=>{
-				console.log(result)
 				result.forEach(el=>{
 					let index=idList.findIndex(id=>id===el._id);
 					shops[index].going=el.going;//if shop is saved in database, return it rather query from Yelp API
+					shops[index].users=el.users
 				});
 				res.json(shops)
 			})
@@ -132,6 +135,18 @@ MongoClient.connect(url,(err,client)=>{
 	app.get('/user',verifyToken,(req,res)=>{
 		res.send(req.userData)
 	});
+	
+	app.get('/users/shops',verifyToken,(req,res)=>{
+		console.log(req.userData.id)
+		db.collection('users').findOne({id:req.userData.id},(err,user)=>{
+			if (err) console.log(err);
+			let userShops=user.goingList.filter(el=>{
+				return sameDate(el.goingDate,new Date())
+			})
+			console.log(userShops)
+			res.json(userShops)
+		});
+	});
 
 	app.put('/users/shops',verifyToken,(req,res)=>{
 		db.collection('users').updateOne(
@@ -147,7 +162,7 @@ MongoClient.connect(url,(err,client)=>{
 	app.delete('/users/shops',verifyToken,(req,res)=>{//need to be modified
 		db.collection('users').findOne({id:req.userData.id},(err,user)=>{
 			let queryIndex=user.goingList.findIndex(el=>{
-					return	el.id===req.body.shop.id&&sameDate(el.goingDate,req.body.shop.deletingDate)
+					return	el.id===req.body.shop.id&&sameDate(el.goingDate,new Date())
 				});
 			if(queryIndex>-1){
 				db.collection('users').updateOne(

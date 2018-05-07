@@ -8,7 +8,7 @@ import Navbar from './nav'
 class App extends Component {
   constructor(){
     super();
-    this.state={shoplist:[],showLogInModal:false}
+    this.state={shoplist:[],showLogInModal:false,showUserShops:false};//if userShops==false=>show all Shops
     this.getGeoLocation=this.getGeoLocation.bind(this);
     this.fetchByGeoLocation=this.fetchByGeoLocation.bind(this);
     this.getCityName=this.getCityName.bind(this);
@@ -19,6 +19,8 @@ class App extends Component {
     this.handleLogInPanel=this.handleLogInPanel.bind(this);
     this.handleLogOut=this.handleLogOut.bind(this);
     this.fetchServerToken=this.fetchServerToken.bind(this);
+    this.userIsGoing=this.userIsGoing.bind(this);
+    this.handleUserShops=this.handleUserShops.bind(this);
   }
 
   componentDidMount(){
@@ -26,7 +28,7 @@ class App extends Component {
     if(token){
       this.fetchServerToken(token);
     }
-    this.fetchByCityName('paris')
+    this.fetchByCityName('paris');
   }
 
   getCityName(e){
@@ -59,6 +61,11 @@ class App extends Component {
 
   handleGoing(index,id){
     let shoplist=this.state.shoplist.slice();
+    if(shoplist[index].users&&shoplist[index].users.includes(this.state.user.id)){
+      let userIndex=shoplist[index].users.indexOf(this.state.user.id);
+      shoplist[index].isGoing=true;
+      shoplist[index].users.splice(userIndex,1)
+    };
     if(this.state.user){
       if(!this.state.shoplist[index].isGoing){
         shoplist[index].going++;
@@ -77,17 +84,44 @@ class App extends Component {
 
   handleLogInPanel(){
     if(!this.state.showLogInModal){
-      this.setState({showLogInModal:true});console.log('aa')
+      this.setState({showLogInModal:true});
     }else{
-      console.log('bb')
       this.setState({showLogInModal:false})
     }
   }
 
   handleLogOut(){
     sessionStorage.removeItem('token');
-    this.setState({user:null})
+    //change all "going" in shoplist state to false
+    let shoplist=this.state.shoplist.slice();
+    shoplist.forEach(each=>{each.isGoing=false});
+    this.setState({user:null,shoplist});
+  }
+
+  userIsGoing(userID){//check if user already ticked on Going in a shop
+    let shoplist=this.state.shoplist.slice();
+    shoplist.forEach(shop=>{
+      if (shop.users&&shop.users.includes(userID)){
+          shop.isGoing=true;
+      }
+    });
+    this.setState({shoplist})
   } 
+
+  handleUserShops(){
+    fetch('/users/shops',{
+      method:'get',
+      headers:{
+        'Content-Type':'application/json',
+        'token':sessionStorage.getItem('token'),
+      }
+    })
+    .then(res=>res.json())
+    .then(res=>{
+      console.log(res)
+      this.setState({userShops:res,showUserShops:true})
+    })
+  }
 
   fetchByCityName(cityName){
     fetch(`/api/shops/${JSON.stringify(cityName)}`)
@@ -132,12 +166,12 @@ class App extends Component {
     })
     .then(res=>res.json())
     .then(res=>{
-      console.log(res)
       sessionStorage.setItem('token',res.token)
       this.setState({user:{id:res.id, name:res.name},showLogInModal:false})
     })
   }
   fetchUserGoingToShop(index){
+    console.log({shop:{...this.state.shoplist[index],going:1}})
     fetch('/users/shops',{
       method:'put',
       headers:{
@@ -145,7 +179,7 @@ class App extends Component {
         "token":sessionStorage.getItem('token')
       },
       body:
-        JSON.stringify({shop:this.state.shoplist[index]})
+        JSON.stringify({shop:{...this.state.shoplist[index],going:1}})
     })
     .then(res=>res.json())
     .then(res=>{
@@ -161,12 +195,10 @@ class App extends Component {
       },
       body:JSON.stringify(
         {
-          shop:
-            {id,
-            deletingDate:Date.now() 
-          }
+          shop:{id}
         })
-    })
+    }).then(res=>res.json())
+    .then(res=>{console.log(res)})
   }
 
   render() {
@@ -175,7 +207,9 @@ class App extends Component {
         <Navbar 
           handleLogInPanel={this.handleLogInPanel}
           user={this.state.user}
-           handleLogOut={this.handleLogOut}
+          handleUserShops={()=>this.handleUserShops(this.state.user.id)}
+          handleViewAllShops={()=>{this.setState({showUserShops:false})}}
+          handleLogOut={this.handleLogOut}
         />
         <Cover getGeoLocation={this.getGeoLocation}
                 getCityName={this.getCityName}
@@ -188,7 +222,7 @@ class App extends Component {
         {this.state.isFetched?
           <Grid className="App" fluid>
             <ShopList 
-              shoplist={this.state.shoplist} 
+              shoplist={this.state.showUserShops?this.state.userShops: this.state.shoplist} 
               handleGoing={this.handleGoing}
             />
           </Grid>:
